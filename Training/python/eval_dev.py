@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import roc_auc_score, accuracy_score
+from sklearn.metrics import roc_curve, roc_auc_score, accuracy_score
 
 import os
 import wandb
@@ -41,6 +41,23 @@ wandb.log({"precision-recall" : wandb.plot.pr_curve(y_test,
 wandb.run.summary["accuracy"] = accuracy_score(y_test, y_proba[:, 1] > 0.5)
 wandb.run.summary["roc_auc"] = roc_auc_score(y_test, y_proba[:, 1])
 
+# custom roc curve
+fpr, tpr, _ = roc_curve(y_test, y_proba[:, 1], pos_label=1)
+data = list(zip(fpr, tpr))
+table = wandb.Table(columns=["fpr", "tpr"], data=data)
+roc_curve = wandb.plot_table(
+    "wandb/area-under-curve/v0",
+    table,
+    {"x": "fpr", "y": "tpr"},
+    {
+        "title": "ROC",
+        "x-axis-title": "False positive rate",
+        "y-axis-title": "True positive rate",
+    },
+)
+wandb.log({"custom_roc" : roc_curve})
+
+# histogram with proba
 data = [[s] for s in y_proba[:, 1]]
 table = wandb.Table(data=data, columns=["scores"])
 wandb.log({'my_histogram': wandb.plot.histogram(table, "scores",
