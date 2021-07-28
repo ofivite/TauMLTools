@@ -1,0 +1,7 @@
+input_path: "roc_json"
+pt_bin: 0 # will log to wandb pt_min and pt_max taken from input json
+discriminator: "DeepTau vs. jets" # "MVA \(updated decay modes\)", "MVA vs. jets \(JINST 13 \(2018\) P10005\)", "DeepTau vs. jets WP"
+vs_type: jet
+dataset: W
+
+# python log_roc.py -m 'discriminator=DeepTau vs. jets, MVA \(updated decay modes\), MVA vs. jets \(JINST 13 \(2018\) P10005\), DeepTau vs. jets WP, DeepTau vs. muons, DeepTau vs. electrons, MVA vs. electrons \(JINST 13 \(2018\) P10005\), Cut based \(JINST 13 \(2018\) P10005\)' pt_bin=0,1 vs_type=jet,mu,e dataset=DY,TT,W
