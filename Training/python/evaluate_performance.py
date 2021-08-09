@@ -39,11 +39,6 @@ from matplotlib.backends.backend_pdf import PdfPages
 import eval_tools
 import common
 
-import wandb
-
-params = {'type': args.other_type}
-wandb.init(config=params, project='deeptau')
-
 def AddPredictionsToDataFrame(df, file_name, label = ''):
     df_pred = pandas.read_hdf(file_name)
     for out in common.match_suffixes:
@@ -201,7 +196,6 @@ with PdfPages(args.output) as pdf:
                 roc_json_entry['discriminators'].insert(0, discr_data)
                 name_suffix = ' WP'
 
-                wandb.run.summary[discriminators[n].column] = roc.auc_score
 
         fig, (ax, ax_ratio) = plt.subplots(2, 1, figsize=(7, 7), sharex=True,
                                            gridspec_kw = {'height_ratios':[3, 1]})

@@ -9,7 +9,6 @@ from _ctypes import PyObj_FromPtr
 import json
 import re
 import sys
-import wandb
 
 if sys.version_info.major > 2:
     from statsmodels.stats.proportion import proportion_confint
@@ -190,9 +189,6 @@ class Discriminator:
         n_wp = len(self.working_points)
         wp_roc = None
         if self.raw:
-            wandb.log({f"{self.column}" : wandb.plot.roc_curve(df['gen_tau'].values,
-                                                               np.concatenate((1-df[self.column].values[:, np.newaxis], df[self.column].values[:, np.newaxis]), axis=-1),
-                                                               labels=None, classes_to_plot=None)})
             fpr, tpr, thresholds = metrics.roc_curve(df['gen_tau'].values, df[self.column].values,
                                                      sample_weight=df.weight.values)
             roc = RocCurve(len(fpr), self.color, False, dashed=self.dashed)
