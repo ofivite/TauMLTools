@@ -16,6 +16,7 @@ from tensorflow.keras import regularizers
 from tensorflow.keras.models import Sequential, Model, load_model
 from tensorflow.keras.layers import Input, Dense, Conv2D, Dropout, AlphaDropout, Activation, BatchNormalization, Flatten, \
                                     Concatenate, PReLU, TimeDistributed, LSTM, Masking
+from tensorflow_addons.layers import GroupNormalization
 from tensorflow.keras.callbacks import Callback, ModelCheckpoint, CSVLogger
 from datetime import datetime
 
@@ -31,11 +32,15 @@ from common import *
 import DataLoader
 
 class NetSetup:
-    def __init__(self, activation, dropout_rate=0, reduction_rate=1, kernel_regularizer=None):
+    def __init__(self, activation, dropout_rate=0, reduction_rate=1, kernel_regularizer=None, n_norm_groups=-1, apply_weight_stand=False):
         self.activation = activation
         self.dropout_rate = dropout_rate
         self.reduction_rate = reduction_rate
         self.kernel_regularizer = kernel_regularizer
+        self.n_norm_groups = n_norm_groups
+        self.apply_weight_stand = apply_weight_stand
+        if self.apply_weight_stand: # apply weight standardization
+            self.kernel_regularizer = normalize_kernel
 
         if self.activation == 'relu' or self.activation == 'PReLU' or self.activation == 'tanh':
             self.DropoutType = Dropout
@@ -94,10 +99,16 @@ class NetSetupConv2D(NetSetup):
 
 def add_block_ending(net_setup, name_format, layer):
     if net_setup.apply_batch_norm:
-        norm_layer = BatchNormalization(name=name_format.format('norm'))
+        norm_layer = BatchNormalization(name=name_format.format('batch_norm'))
         if net_setup.time_distributed:
             norm_layer = TimeDistributed(norm_layer, name=name_format.format('norm'))
-        norm_layer = norm_layer(layer)
+        batch_norm_layer = norm_layer(layer)
+
+        # add group normallisation on top of batch norm
+        if net_setup.n_norm_groups > 0:
+            norm_layer = GroupNormalization(groups=net_setup.n_norm_groups, axis=3, name=name_format.format('group_norm'))(batch_norm_layer)
+        else:
+            norm_layer = batch_norm_layer
     else:
         norm_layer = layer
     if net_setup.activation == 'PReLU':
@@ -145,7 +156,8 @@ def reduce_n_features_1d(input_layer, net_setup, block_name):
 
 def conv_block(prev_layer, filters, kernel_size, net_setup, block_name, n):
     conv = Conv2D(filters, kernel_size, name="{}_conv_{}".format(block_name, n),
-                  kernel_initializer=net_setup.kernel_init)(prev_layer)
+                  kernel_initializer=net_setup.kernel_init, 
+                  kernel_regularizer=net_setup.kernel_regularizer)(prev_layer)
     return add_block_ending(net_setup, '{}_{{}}_{}'.format(block_name, n), conv)
 
 def reduce_n_features_2d(input_layer, net_setup, block_name):
@@ -155,6 +167,13 @@ def reduce_n_features_2d(input_layer, net_setup, block_name):
     for n, layer_size in enumerate(layer_sizes):
         prev_layer = conv_block(prev_layer, layer_size, conv_kernel, net_setup, block_name, n+1)
     return prev_layer
+
+def normalize_kernel(kernel): # weight standartization implementation
+    kernel_mean = tf.math.reduce_mean(kernel, axis=[0, 1, 2], keepdims=True, name='kernel_mean')
+    kernel = kernel - kernel_mean
+    kernel_std = tf.math.reduce_std(kernel, axis=[0, 1, 2], keepdims=True, name='kernel_std')
+    # kernel_std = tf.keras.backend.std(kernel, axis=[0, 1, 2], keepdims=True)
+    kernel = kernel / (kernel_std + 1e-5)
 
 def get_n_filters_conv2d(n_input, current_size, window_size, reduction_rate):
     if reduction_rate is None:
