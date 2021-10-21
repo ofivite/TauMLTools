@@ -1,6 +1,7 @@
 import time
 import gc
 import numpy as np
+import mlflow
 import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.models import load_model
@@ -25,9 +26,12 @@ class TimeCheckpoint(Callback):
         self.file_name_prefix = file_name_prefix
         self.initial_time = time.time()
         self.last_check_time = self.initial_time
+        self.i_batch = 0
 
     def on_batch_end(self, batch, logs=None):
-        if self.time_interval is None or batch % 100 != 0: return
+        if self.time_interval is None or batch % 10 != 0: return
+        mlflow.log_metrics({k: v for k,v in logs.items()}, step=self.i_batch)
+        self.i_batch += 1
         current_time = time.time()
         delta_t = current_time - self.last_check_time
         if delta_t >= self.time_interval:
