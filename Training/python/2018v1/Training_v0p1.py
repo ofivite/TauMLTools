@@ -267,7 +267,7 @@ def compile_model(model, opt_name, learning_rate):
     metric_names = {(m if isinstance(m, str) else m.__name__): '' for m in metrics}
     mlflow.log_dict(metric_names, 'input_cfg/metric_names.json')
 
-def run_training(model, data_loader, to_profile, log_suffix):
+def run_training(model, data_loader, to_profile, log_suffix, model_log_interval, metric_log_interval):
 
     gen_train = data_loader.get_generator(primary_set = True)
     gen_val = data_loader.get_generator(primary_set = False)
@@ -287,7 +287,7 @@ def run_training(model, data_loader, to_profile, log_suffix):
         close_file(csv_log_file)
         os.remove(csv_log_file)
     csv_log = CSVLogger(csv_log_file, append=True)
-    time_checkpoint = TimeCheckpoint(12*60*60, log_name)
+    time_checkpoint = TimeCheckpoint(model_log_interval, metric_log_interval, log_name)
     callbacks = [time_checkpoint, csv_log]
 
     logs = log_name + '_' + datetime.now().strftime("%Y.%m.%d(%H:%M)")
@@ -355,7 +355,7 @@ def main(cfg: DictConfig) -> None:
         mlflow.log_artifact('Training_v0p1.log', 'input_cfg/hydra')
 
         # run training
-        fit_hist = run_training(model, dataloader, False, cfg.log_suffix)
+        fit_hist = run_training(model, dataloader, False, cfg.log_suffix, cfg.model_log_interval, cfg.metric_log_interval)
 
         # log number of trainable params
         with open(to_absolute_path(f'{cfg.path_to_mlflow}/{run_kwargs["experiment_id"]}/{run_id}/artifacts/model_summary.txt')) as f:

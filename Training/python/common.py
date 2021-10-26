@@ -21,25 +21,30 @@ def setup_gpu(gpu_cfg):
             print(e)
 
 class TimeCheckpoint(Callback):
-    def __init__(self, time_interval, file_name_prefix):
-        self.time_interval = time_interval
+    def __init__(self, model_log_interval, metric_log_interval, file_name_prefix):
+        self.model_log_interval = model_log_interval
+        self.metric_log_interval = metric_log_interval
         self.file_name_prefix = file_name_prefix
         self.initial_time = time.time()
         self.last_check_time = self.initial_time
         self.i_batch = 0
 
     def on_batch_end(self, batch, logs=None):
-        if self.time_interval is None or batch % 10 != 0: return
-        mlflow.log_metrics({k: v for k,v in logs.items()}, step=self.i_batch)
+        if self.metric_log_interval is not None:
+            if not (isinstance(self.metric_log_interval, int) and self.metric_log_interval>0):
+                raise RuntimeError('metric_log_interval should be positive integer, got ', self.metric_log_interval)
+            if batch%self.metric_log_interval == 0:
+                mlflow.log_metrics({k: v for k,v in logs.items()}, step=self.i_batch)
+        if self.model_log_interval is not None:
+            current_time = time.time()
+            delta_t = current_time - self.last_check_time
+            if delta_t >= self.model_log_interval:
+                abs_delta_t_h = (current_time - self.initial_time) / 60. / 60.
+                checkpoint_dir = '{}_historic_b{}_{:.1f}h.tf'.format(self.file_name_prefix, batch, abs_delta_t_h)
+                self.model.save(checkpoint_dir, save_format="tf")
+                mlflow.log_artifacts(checkpoint_dir, f"model_checkpoints/{checkpoint_dir}")
+                self.last_check_time = current_time
         self.i_batch += 1
-        current_time = time.time()
-        delta_t = current_time - self.last_check_time
-        if delta_t >= self.time_interval:
-            abs_delta_t_h = (current_time - self.initial_time) / 60. / 60.
-            checkpoint_dir = '{}_historic_b{}_{:.1f}h.tf'.format(self.file_name_prefix, batch, abs_delta_t_h)
-            self.model.save(checkpoint_dir, save_format="tf")
-            mlflow.log_artifacts(checkpoint_dir, f"model_checkpoints/{checkpoint_dir}")
-            self.last_check_time = current_time
 
     def on_epoch_end(self, epoch, logs=None):
         checkpoint_dir = '{}_e{}.tf'.format(self.file_name_prefix, epoch)

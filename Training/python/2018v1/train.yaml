@@ -16,4 +16,6 @@ gpu_cfg:
   gpu_index: 0
 
 # logs
+metric_log_interval: 10 # in number of batches
+model_log_interval: 43200 # in seconds
 log_suffix: step1
