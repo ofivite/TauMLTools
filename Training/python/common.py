@@ -36,13 +36,15 @@ class TimeCheckpoint(Callback):
         delta_t = current_time - self.last_check_time
         if delta_t >= self.time_interval:
             abs_delta_t_h = (current_time - self.initial_time) / 60. / 60.
-            self.model.save('{}_historic_b{}_{:.1f}h.tf'.format(self.file_name_prefix, batch, abs_delta_t_h),
-                            save_format="tf")
+            checkpoint_dir = '{}_historic_b{}_{:.1f}h.tf'.format(self.file_name_prefix, batch, abs_delta_t_h)
+            self.model.save(checkpoint_dir, save_format="tf")
+            mlflow.log_artifacts(checkpoint_dir, f"model_checkpoints/{checkpoint_dir}")
             self.last_check_time = current_time
 
     def on_epoch_end(self, epoch, logs=None):
-        self.model.save('{}_e{}.tf'.format(self.file_name_prefix, epoch),
-                        save_format="tf")
+        checkpoint_dir = '{}_e{}.tf'.format(self.file_name_prefix, epoch)
+        self.model.save(checkpoint_dir, save_format="tf")
+        mlflow.log_artifacts(checkpoint_dir, f"model_checkpoints/{checkpoint_dir}")
         print("Epoch {} is ended.".format(epoch))
 
 def close_file(f_name):

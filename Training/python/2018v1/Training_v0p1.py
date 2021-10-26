@@ -304,8 +304,6 @@ def run_training(model, data_loader, to_profile, log_suffix):
     model.save(model_path, save_format="tf")
 
     # mlflow logs
-    for checkpoint_dir in glob(f'{log_name}*.tf'):
-         mlflow.log_artifacts(checkpoint_dir, f"model_checkpoints/{checkpoint_dir}")
     mlflow.log_artifacts(model_path, "model")
     mlflow.log_artifacts(logs, "custom_tensorboard_logs")
     mlflow.log_artifact(csv_log_file)
