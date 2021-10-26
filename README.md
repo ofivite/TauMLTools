@@ -334,7 +334,7 @@ It might be the case that trainings from a common mlflow experiment are distribu
 1. `artifact_location` (`meta.yaml` for each experiment) needs to be set to a common merged directory and the same change needs to be propagated to `artifact_uri` (`meta.yaml` for each run).
 1. `experiment_id` needs to be set to a new common experiment ID (`meta.yaml` for each experiment and for each run).
 
-These points are not a problem if the end goal is a simple file storage. However, mlflow is being used in the current training procedure mostly to improve UX with dedicated [`mlflow UI`](https://www.mlflow.org/docs/latest/tracking.html#tracking-ui) for a better navigation through the trainings and their convenient comparison. In that case, mlflow UI requires a properly structured `mlruns` folder to correctly read and visualise run-related information.
+These points are not a problem if the end goal is a simple file storage. However, mlflow is being used in the current training procedure mostly to improve UX with dedicated [`mlflow UI`](https://www.mlflow.org/docs/latest/tracking.html#tracking-ui) for a better navigation through the trainings and their convenient comparison, including online metrics monitoring as the training is being performed. In that case, mlflow UI requires a properly structured `mlruns` folder to correctly read and visualise run-related information.
 
 For the purpose of preparing individual's `mlruns` folder for merging, [`set_mlflow_paths.py`](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/set_mlflow_paths.py) script was written. What it does is:
 1. recursively going through the folders in user-specified `path_to_mlflow` and corresponding experiment `exp_id` therein, opening firstly the experiment-related `meta.yaml` and resetting there `artifact_location` to `new_path_to_exp`, which is defined as a concatenation of user-specified `new_path_to_mlflow` and `exp_id` or `new_exp_id` (if passed)
@@ -363,7 +363,7 @@ Therefore, the following workflow is suggested:
 1. Now, it should be possible to bring up mlflow UI and inspect the merged runs altogether:
    ```sh
    cd ${SHARED_DIR}
-   mlflow ui -p 5000 # 5000 is the default port
+   GUNICORN_CMD_ARGS="--timeout 600" mlflow ui -p 5000 # 5000 is the default port
    # forward this port to a machine with graphics
    ```
 
