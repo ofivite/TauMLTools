@@ -16,6 +16,6 @@ gpu_cfg:
   gpu_index: 0
 
 # logs
-metric_log_interval: 10 # in number of batches
-model_log_interval: 43200 # in seconds
+metric_log_interval: null # in number of batches, null to not log (end of epoch is always logged)
+model_log_interval: null # in number of batches, null to not log (end of epoch is always logged)
 log_suffix: step1
